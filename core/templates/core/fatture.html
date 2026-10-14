@@ -1,0 +1,33 @@
+{% extends "core/base.html" %}
+{% block title %}Fatture{% endblock %}
+{% block content %}
+<h1 class="h3">Fatture</h1>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-auto"><select name="direzione" class="form-select form-select-sm">
+    <option value="">Emesse e ricevute</option>
+    <option value="attiva" {% if request.GET.direzione == 'attiva' %}selected{% endif %}>Emesse (attive)</option>
+    <option value="passiva" {% if request.GET.direzione == 'passiva' %}selected{% endif %}>Ricevute (passive)</option></select></div>
+  <div class="col-auto"><select name="stato" class="form-select form-select-sm">
+    <option value="">Tutte</option>
+    <option value="aperte" {% if request.GET.stato == 'aperte' %}selected{% endif %}>Da incassare / pagare</option>
+    <option value="pagate" {% if request.GET.stato == 'pagate' %}selected{% endif %}>Saldate</option></select></div>
+  <div class="col-auto"><input name="q" value="{{ request.GET.q }}" placeholder="Numero, controparte, P.IVA" class="form-control form-control-sm"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-secondary">Filtra</button></div>
+</form>
+<table class="table table-sm table-hover bg-white">
+  <thead><tr><th></th><th>TD</th><th>Numero</th><th>Data</th><th>Controparte</th><th class="num">Totale</th><th class="num">Netto atteso</th><th>Scadenza</th><th>Pag.</th><th class="num">Residuo</th></tr></thead>
+  <tbody>
+  {% for f in pagina %}
+    <tr>
+      <td><span class="badge {% if f.direzione == 'attiva' %}bg-info-subtle text-info-emphasis{% else %}bg-warning-subtle text-warning-emphasis{% endif %}">{% if f.direzione == 'attiva' %}emessa{% else %}ricevuta{% endif %}</span></td>
+      <td class="small">{{ f.tipo_documento }}</td><td>{{ f.numero }}</td><td>{{ f.data|date:"d/m/Y" }}</td>
+      <td>{{ f.controparte }} <span class="text-muted small">{{ f.controparte_piva }}</span></td>
+      <td class="num">{{ f.totale|floatformat:"2g" }}</td><td class="num">{{ f.netto_a_pagare|floatformat:"2g" }}</td>
+      <td>{{ f.data_scadenza|date:"d/m/Y"|default:"" }}</td><td class="small">{{ f.modalita_pagamento }}</td>
+      <td class="num">{% if f.residuo_calc > 0.01 %}<span class="text-danger">{{ f.residuo_calc|floatformat:"2g" }}</span>{% else %}<span class="text-success">✓ saldata</span>{% endif %}</td>
+    </tr>
+  {% empty %}<tr><td colspan="10" class="text-muted">Nessuna fattura.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% include "core/_paginazione.html" %}
+{% endblock %}

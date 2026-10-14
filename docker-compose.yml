@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    depends_on: [db]
+    ports:
+      - "8000:8000"
+  # sincronizzazione notturna fatture Aruba + ricalcolo abbinamenti
+  cron:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    depends_on: [db]
+    command: sh -c 'while true; do python manage.py sincronizza_aruba; sleep 86400; done'
+volumes:
+  pgdata:

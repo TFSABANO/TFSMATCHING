@@ -1,0 +1,6 @@
+Data;Metodo pagamento;Importo;N. chiusura
+01/02/2026;Contanti;210,50;101
+01/02/2026;Carta;300,00;101
+02/02/2026;POS;195,00;102
+03/02/2026;Bancomat;400,00;103
+04/02/2026;Carta di credito;300,00;104

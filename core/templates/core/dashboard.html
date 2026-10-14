@@ -1,0 +1,42 @@
+{% extends "core/base.html" %}
+{% block title %}Cruscotto{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Cruscotto · {{ azienda }}</h1>
+  <div class="d-flex gap-2">
+    {% if membro.puo_modificare %}
+    <form method="post" action="{% url 'genera_proposte' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'riconciliazione' %}"><button class="btn btn-primary">Calcola abbinamenti</button></form>
+    {% endif %}
+    <a class="btn btn-outline-success" href="{% url 'esporta' %}">Esporta Excel</a>
+  </div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card h-100"><div class="card-body">
+    <div class="text-muted small">Movimenti bancari da abbinare</div>
+    <div class="fs-3">{{ n_mov_aperti }} <span class="fs-6 text-muted">/ {{ n_movimenti }}</span></div>
+    <a href="{% url 'riconciliazione' %}?stato=aperti" class="small">Vedi</a>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100 border-primary"><div class="card-body">
+    <div class="text-muted small">Movimenti con proposte da verificare</div>
+    <div class="fs-3">{{ n_proposte }}</div>
+    <a href="{% url 'riconciliazione' %}?stato=proposti" class="small">Verifica</a>
+  </div></div></div>
+  <div class="col-md-2"><div class="card h-100"><div class="card-body">
+    <div class="text-muted small">Fatture emesse non incassate</div>
+    <div class="fs-4">{{ att_aperte }}</div><div class="small">€ {{ att_aperte_tot|floatformat:"2g" }}</div>
+    <a href="{% url 'fatture' %}?direzione=attiva&stato=aperte" class="small">Vedi</a>
+  </div></div></div>
+  <div class="col-md-2"><div class="card h-100"><div class="card-body">
+    <div class="text-muted small">Fatture ricevute non pagate</div>
+    <div class="fs-4">{{ pas_aperte }}</div><div class="small">€ {{ pas_aperte_tot|floatformat:"2g" }}</div>
+    <a href="{% url 'fatture' %}?direzione=passiva&stato=aperte" class="small">Vedi</a>
+  </div></div></div>
+  <div class="col-md-2"><div class="card h-100"><div class="card-body">
+    <div class="text-muted small">Corrispettivi elettronici non accreditati</div>
+    <div class="fs-4">{{ corr_aperti }}</div><div class="small">€ {{ corr_aperti_tot|floatformat:"2g" }}</div>
+    <a href="{% url 'corrispettivi' %}?stato=aperti" class="small">Vedi</a>
+  </div></div></div>
+</div>
+<h2 class="h5">Ultime importazioni</h2>
+{% include "core/_importazioni.html" with importazioni=importazioni %}
+{% endblock %}

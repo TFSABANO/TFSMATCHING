@@ -1,0 +1,75 @@
+{% extends "core/base.html" %}
+{% block title %}Riconciliazione{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h1 class="h3 mb-0">Riconciliazione</h1>
+  {% if membro.puo_modificare %}
+  <div class="d-flex gap-2">
+    <form method="post" action="{% url 'genera_proposte' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-primary">Calcola abbinamenti</button></form>
+    <form method="post" action="{% url 'conferma_soglia' %}" onsubmit="return confirm('Confermare tutte le proposte con punteggio ≥ {{ soglia }}?')">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-outline-primary">Conferma proposte ≥ {{ soglia }}</button></form>
+  </div>
+  {% endif %}
+</div>
+
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link {% if stato == 'proposti' %}active{% endif %}" href="?stato=proposti">Da verificare</a></li>
+  <li class="nav-item"><a class="nav-link {% if stato == 'aperti' %}active{% endif %}" href="?stato=aperti">Non abbinati</a></li>
+  <li class="nav-item"><a class="nav-link {% if stato == 'abbinati' %}active{% endif %}" href="?stato=abbinati">Abbinati</a></li>
+  <li class="nav-item"><a class="nav-link {% if stato == 'tutti' %}active{% endif %}" href="?stato=tutti">Tutti</a></li>
+</ul>
+
+<form class="row g-2 mb-3" method="get">
+  <input type="hidden" name="stato" value="{{ stato }}">
+  <div class="col-auto"><select name="conto" class="form-select form-select-sm"><option value="">Tutti i conti</option>
+    {% for c in conti %}<option value="{{ c.pk }}" {% if request.GET.conto == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><select name="verso" class="form-select form-select-sm">
+    <option value="">Entrate e uscite</option>
+    <option value="entrate" {% if request.GET.verso == 'entrate' %}selected{% endif %}>Solo entrate</option>
+    <option value="uscite" {% if request.GET.verso == 'uscite' %}selected{% endif %}>Solo uscite</option></select></div>
+  <div class="col-auto"><input type="date" name="dal" value="{{ request.GET.dal }}" class="form-control form-control-sm"></div>
+  <div class="col-auto"><input type="date" name="al" value="{{ request.GET.al }}" class="form-control form-control-sm"></div>
+  <div class="col-auto"><input name="q" value="{{ request.GET.q }}" placeholder="Cerca nella causale" class="form-control form-control-sm"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-secondary">Filtra</button></div>
+</form>
+
+<table class="table table-sm bg-white">
+  <thead><tr><th>Data</th><th>Conto</th><th>Causale</th><th class="num">Importo</th><th class="num">Residuo</th><th>Abbinamenti</th></tr></thead>
+  <tbody>
+  {% for m in pagina %}
+    <tr>
+      <td class="text-nowrap">{{ m.data|date:"d/m/Y" }}</td>
+      <td class="small">{{ m.conto.nome }}</td>
+      <td class="descr"><a href="{% url 'movimento' m.pk %}" class="text-decoration-none text-reset">{{ m.descrizione|truncatechars:160 }}</a></td>
+      <td class="num {% if m.importo > 0 %}entrata{% else %}uscita{% endif %}">{{ m.importo|floatformat:"2g" }}</td>
+      <td class="num">{% if m.residuo_calc > 0.01 %}{{ m.residuo_calc|floatformat:"2g" }}{% else %}<span class="text-success">✓</span>{% endif %}</td>
+      <td>
+        {% for a in m.lista_abbinamenti %}
+          <div class="d-flex align-items-center gap-2 mb-1 small">
+            {% if a.stato == 'proposto' %}<span class="badge badge-score {% if a.punteggio >= soglia %}bg-success{% elif a.punteggio >= 70 %}bg-primary{% else %}bg-secondary{% endif %}" title="{{ a.motivo }}">{{ a.punteggio }}</span>
+            {% else %}<span class="badge bg-success-subtle text-success-emphasis">{% if a.manuale %}manuale{% else %}ok{% endif %}</span>{% endif %}
+            <span title="{{ a.motivo }}">
+              {% if a.fattura %}Ft {{ a.fattura.numero }} del {{ a.fattura.data|date:"d/m/y" }} · {{ a.fattura.controparte|truncatechars:35 }}
+              {% else %}Corrisp. {{ a.corrispettivo.data|date:"d/m/y" }} {{ a.corrispettivo.get_metodo_display }}{% endif %}
+              · € {{ a.importo|floatformat:"2g" }}{% if a.importo != a.importo_documento %} <span class="text-muted">(lordo {{ a.importo_documento|floatformat:"2g" }})</span>{% endif %}
+            </span>
+            {% if membro.puo_modificare %}
+              {% if a.stato == 'proposto' %}
+                {% ifchanged a.gruppo|default:a.pk %}
+                <form method="post" action="{% url 'azione_abbinamento' a.pk 'conferma' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-success btn-sm py-0">Conferma</button></form>
+                <form method="post" action="{% url 'azione_abbinamento' a.pk 'rifiuta' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-outline-danger btn-sm py-0">Scarta</button></form>
+                {% endifchanged %}
+              {% else %}
+                <form method="post" action="{% url 'azione_abbinamento' a.pk 'elimina' %}" onsubmit="return confirm('Annullare questo abbinamento?')">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-link btn-sm py-0 text-danger">annulla</button></form>
+              {% endif %}
+            {% endif %}
+          </div>
+        {% empty %}
+          <a href="{% url 'movimento' m.pk %}" class="small">abbina manualmente</a>
+        {% endfor %}
+      </td>
+    </tr>
+  {% empty %}<tr><td colspan="6" class="text-muted p-3">Nessun movimento. {% if stato == 'proposti' %}Premi "Calcola abbinamenti" dopo aver importato i dati.{% endif %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% include "core/_paginazione.html" %}
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "core/base.html" %}
+{% block title %}Storico importazioni{% endblock %}
+{% block content %}
+<h1 class="h3">Storico importazioni</h1>
+{% include "core/_importazioni.html" with importazioni=importazioni %}
+{% include "core/_paginazione.html" with pagina=importazioni %}
+{% endblock %}

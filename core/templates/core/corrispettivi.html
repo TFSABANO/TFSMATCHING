@@ -1,0 +1,26 @@
+{% extends "core/base.html" %}
+{% block title %}Corrispettivi{% endblock %}
+{% block content %}
+<h1 class="h3">Corrispettivi</h1>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-auto"><select name="metodo" class="form-select form-select-sm"><option value="">Tutti i metodi</option>
+    <option value="carta" {% if request.GET.metodo == 'carta' %}selected{% endif %}>Carta / POS</option>
+    <option value="contanti" {% if request.GET.metodo == 'contanti' %}selected{% endif %}>Contanti</option>
+    <option value="bonifico" {% if request.GET.metodo == 'bonifico' %}selected{% endif %}>Bonifico</option>
+    <option value="altro" {% if request.GET.metodo == 'altro' %}selected{% endif %}>Altro</option></select></div>
+  <div class="col-auto"><select name="stato" class="form-select form-select-sm"><option value="">Tutti</option>
+    <option value="aperti" {% if request.GET.stato == 'aperti' %}selected{% endif %}>Elettronici non accreditati</option></select></div>
+  <div class="col-auto"><button class="btn btn-sm btn-secondary">Filtra</button></div>
+</form>
+<table class="table table-sm table-hover bg-white">
+  <thead><tr><th>Data</th><th>Metodo</th><th>Riferimento</th><th class="num">Importo</th><th class="num">Residuo</th></tr></thead>
+  <tbody>
+  {% for c in pagina %}
+    <tr><td>{{ c.data|date:"D d/m/Y" }}</td><td>{{ c.get_metodo_display }}</td><td>{{ c.riferimento }}</td>
+      <td class="num">{{ c.importo|floatformat:"2g" }}</td>
+      <td class="num">{% if c.metodo == 'contanti' and c.residuo_calc == c.importo %}<span class="text-muted">contanti</span>{% elif c.residuo_calc > 0.01 %}<span class="text-danger">{{ c.residuo_calc|floatformat:"2g" }}</span>{% else %}<span class="text-success">✓</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="5" class="text-muted">Nessun corrispettivo.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% include "core/_paginazione.html" %}
+{% endblock %}

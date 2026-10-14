@@ -1,0 +1,48 @@
+{% extends "core/base.html" %}
+{% block title %}Importa{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Importa dati</h1>
+<div class="row g-4">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h5">1. Corrispettivi dal gestionale</h2>
+    <p class="small text-muted">Excel (.xlsx) o CSV. Colonne riconosciute: <em>Data</em>, <em>Importo/Totale</em>, <em>Metodo pagamento</em>, <em>Riferimento</em>;
+      oppure una riga per giorno con colonne <em>Contanti</em>, <em>Carte/POS/Bancomat</em>, <em>Satispay</em>…</p>
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="azione" value="corrispettivi">
+      {{ f_corr.as_p }}<button class="btn btn-primary">Importa corrispettivi</button></form>
+  </div></div></div>
+
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h5">2. Estratti conto</h2>
+    {% if ha_conti %}
+    <p class="small text-muted">PDF di Revolut, Vivid, SumUp. Se un PDF non viene letto correttamente usa l'export <strong>CSV</strong> della banca (più affidabile).</p>
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="azione" value="estratto">
+      {{ f_estr.as_p }}<button class="btn btn-primary">Importa estratti</button></form>
+    {% else %}
+    <div class="alert alert-warning">Prima crea almeno un conto bancario in <a href="{% url 'impostazioni' %}">Impostazioni</a>.</div>
+    {% endif %}
+  </div></div></div>
+
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h5">3a. Fatture da Aruba (API)</h2>
+    {% if aruba %}
+      <p class="small text-muted">Account <strong>{{ aruba.username }}</strong> ({{ aruba.get_ambiente_display }}).
+      Ultima sincronizzazione: {{ aruba.ultima_sincronizzazione|date:"d/m/Y H:i"|default:"mai" }}.
+      Senza date: dall'ultima sincronizzazione (o ultimi 12 mesi).</p>
+      <form method="post">{% csrf_token %}<input type="hidden" name="azione" value="aruba">
+        <div class="row"><div class="col">{{ f_sync.dal.label_tag }}{{ f_sync.dal }}</div><div class="col">{{ f_sync.al.label_tag }}{{ f_sync.al }}</div></div>
+        <button class="btn btn-primary mt-3">Scarica fatture emesse e ricevute</button></form>
+    {% else %}
+      <div class="alert alert-warning">Configura le credenziali Aruba in <a href="{% url 'impostazioni' %}">Impostazioni</a>.</div>
+    {% endif %}
+  </div></div></div>
+
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h5">3b. Fatture da file</h2>
+    <p class="small text-muted">XML, XML.P7M firmati o ZIP scaricati dal pannello Aruba (anche più file insieme). Attive/passive vengono
+      riconosciute dalla P.IVA dell'azienda ({{ azienda.partita_iva|default:"non impostata!" }}).</p>
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="azione" value="fatture">
+      {{ f_fatt.as_p }}<button class="btn btn-primary">Importa fatture</button></form>
+  </div></div></div>
+</div>
+<p class="mt-4">Dopo l'import vai in <a href="{% url 'riconciliazione' %}">Riconciliazione</a> e premi <strong>Calcola abbinamenti</strong>.</p>
+{% endblock %}

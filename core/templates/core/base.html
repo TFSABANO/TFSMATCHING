@@ -1,0 +1,56 @@
+{% load static %}
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Riconcilia{% endblock %} · Riconcilia</title>
+  <link href="{% static 'core/bootstrap.min.css' %}" rel="stylesheet">
+  <style>
+    body { background: #f6f7f9; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .entrata { color: #157347; } .uscita { color: #b02a37; }
+    .descr { max-width: 520px; font-size: .9rem; }
+    .badge-score { min-width: 2.6rem; }
+    table.table-sm td, table.table-sm th { vertical-align: middle; }
+  </style>
+</head>
+<body>
+{% if user.is_authenticated %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'dashboard' %}">Riconcilia</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="{% url 'riconciliazione' %}">Riconciliazione</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'fatture' %}">Fatture</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'corrispettivi' %}">Corrispettivi</a></li>
+        {% if membro.puo_modificare %}<li class="nav-item"><a class="nav-link" href="{% url 'importa' %}">Importa</a></li>{% endif %}
+        <li class="nav-item"><a class="nav-link" href="{% url 'importazioni' %}">Storico import</a></li>
+        {% if membro.ruolo == 'admin' %}<li class="nav-item"><a class="nav-link" href="{% url 'impostazioni' %}">Impostazioni</a></li>{% endif %}
+      </ul>
+      {% if aziende_utente|length > 1 %}
+      <form method="post" action="{% url 'cambia_azienda' %}" class="me-3">{% csrf_token %}
+        <select name="azienda_id" class="form-select form-select-sm" onchange="this.form.submit()">
+          {% for a in aziende_utente %}<option value="{{ a.pk }}" {% if a.pk == azienda.pk %}selected{% endif %}>{{ a }}</option>{% endfor %}
+        </select>
+      </form>
+      {% elif azienda %}<span class="navbar-text me-3">{{ azienda }}</span>{% endif %}
+      <span class="navbar-text me-2 small">{{ user.username }}</span>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-outline-light btn-sm">Esci</button></form>
+    </div>
+  </div>
+</nav>
+{% endif %}
+<main class="container-fluid px-4">
+  {% for m in messages %}
+    <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %} alert-dismissible fade show py-2">
+      {{ m }}<button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<script src="{% static 'core/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

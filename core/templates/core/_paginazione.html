@@ -1,0 +1,7 @@
+{% if pagina.has_other_pages %}
+<nav><ul class="pagination pagination-sm">
+  {% if pagina.has_previous %}<li class="page-item"><a class="page-link" href="?{{ filtri }}&page={{ pagina.previous_page_number }}">«</a></li>{% endif %}
+  <li class="page-item disabled"><span class="page-link">Pagina {{ pagina.number }} di {{ pagina.paginator.num_pages }}</span></li>
+  {% if pagina.has_next %}<li class="page-item"><a class="page-link" href="?{{ filtri }}&page={{ pagina.next_page_number }}">»</a></li>{% endif %}
+</ul></nav>
+{% endif %}

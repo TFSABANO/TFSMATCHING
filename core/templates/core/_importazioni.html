@@ -1,0 +1,12 @@
+<table class="table table-sm table-hover bg-white">
+  <thead><tr><th>Data</th><th>Tipo</th><th>File / periodo</th><th class="num">Nuovi</th><th class="num">Già presenti</th><th>Utente</th><th>Avvisi</th></tr></thead>
+  <tbody>
+  {% for i in importazioni %}
+    <tr>
+      <td>{{ i.creata_il|date:"d/m/Y H:i" }}</td><td>{{ i.get_tipo_display }}</td><td>{{ i.nome_file }}</td>
+      <td class="num">{{ i.righe_importate }}</td><td class="num">{{ i.righe_saltate }}</td><td>{{ i.utente|default:"-" }}</td>
+      <td>{% if i.note %}<details><summary class="text-warning">mostra</summary><pre class="small mb-0" style="white-space:pre-wrap">{{ i.note }}</pre></details>{% endif %}</td>
+    </tr>
+  {% empty %}<tr><td colspan="7" class="text-muted">Nessuna importazione.</td></tr>{% endfor %}
+  </tbody>
+</table>

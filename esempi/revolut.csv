@@ -1,0 +1,4 @@
+Date started (UTC),Date completed (UTC),ID,Type,State,Description,Reference,Payer,Card number,Orig currency,Orig amount,Payment currency,Amount,Fee,Balance,Account
+2026-02-02,2026-02-02,a1,TRANSFER,COMPLETED,Transfer from CLIENTE ALFA SRL,Saldo fattura 2026/15,,,EUR,1220,EUR,1220.00,0,2220.00,EUR Main
+2026-02-04,2026-02-04,a2,CARD_PAYMENT,COMPLETED,Amazon EU,,,,EUR,-35.99,EUR,-35.99,0,2184.01,EUR Main
+2026-02-05,,a3,CARD_PAYMENT,PENDING,Hotel,,,,EUR,-100,EUR,-100.00,0,,EUR Main

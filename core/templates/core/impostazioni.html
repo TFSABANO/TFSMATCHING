@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+{% block title %}Impostazioni{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Impostazioni · {{ azienda }}</h1>
+<div class="row g-4">
+  <div class="col-lg-6"><div class="card"><div class="card-body">
+    <h2 class="h5">Azienda</h2>
+    <p class="small text-muted">P.IVA e codice fiscale servono per distinguere fatture emesse e ricevute.</p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="azione" value="azienda">{{ f_az.as_p }}<button class="btn btn-primary">Salva</button></form>
+  </div></div></div>
+
+  <div class="col-lg-6"><div class="card"><div class="card-body">
+    <h2 class="h5">Credenziali Aruba Fatturazione Elettronica</h2>
+    <p class="small text-muted">Le stesse con cui accedi al pannello Aruba (l'accesso API deve essere abilitato sull'account). La password viene salvata cifrata.</p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="azione" value="aruba">{{ f_aruba.as_p }}<button class="btn btn-primary">Salva</button></form>
+  </div></div></div>
+
+  <div class="col-lg-6"><div class="card"><div class="card-body">
+    <h2 class="h5">Conti bancari</h2>
+    <table class="table table-sm">
+      {% for c in conti %}
+      <tr><td>{{ c.nome }}</td><td>{{ c.get_banca_display }}</td><td class="small">{{ c.iban }}</td><td class="small">{{ c.n }} mov.</td>
+        <td>{% if not c.n %}<form method="post">{% csrf_token %}<input type="hidden" name="azione" value="elimina_conto"><input type="hidden" name="conto_id" value="{{ c.pk }}"><button class="btn btn-link btn-sm text-danger p-0">elimina</button></form>{% endif %}</td></tr>
+      {% empty %}<tr><td class="text-muted">Nessun conto.</td></tr>{% endfor %}
+    </table>
+    <form method="post">{% csrf_token %}<input type="hidden" name="azione" value="conto">{{ f_conto.as_p }}<button class="btn btn-primary">Aggiungi conto</button></form>
+  </div></div></div>
+
+  <div class="col-lg-6"><div class="card"><div class="card-body">
+    <h2 class="h5">Utenti</h2>
+    <table class="table table-sm">
+      {% for mb in membri %}
+      <tr><td>{{ mb.utente.username }}</td><td>{{ mb.utente.email }}</td><td>{{ mb.get_ruolo_display }}</td>
+        <td>{% if mb.utente != user %}<form method="post">{% csrf_token %}<input type="hidden" name="azione" value="rimuovi_membro"><input type="hidden" name="membro_id" value="{{ mb.pk }}"><button class="btn btn-link btn-sm text-danger p-0">rimuovi</button></form>{% endif %}</td></tr>
+      {% endfor %}
+    </table>
+    <p class="small text-muted">Nuovi utenti si creano dal pannello <a href="/admin/auth/user/add/">/admin</a> (solo superuser), poi si associano qui.</p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="azione" value="membro">{{ f_membro.as_p }}<button class="btn btn-primary">Associa utente</button></form>
+  </div></div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "core/base.html" %}
+{% block title %}Movimento{% endblock %}
+{% block content %}
+<a href="{% url 'riconciliazione' %}" class="small">← Riconciliazione</a>
+<div class="card my-3"><div class="card-body">
+  <div class="d-flex justify-content-between">
+    <div>
+      <div class="text-muted small">{{ m.conto }} · {{ m.data|date:"d/m/Y" }}{% if m.data_valuta %} (valuta {{ m.data_valuta|date:"d/m/Y" }}){% endif %}</div>
+      <div class="fs-5">{{ m.descrizione }}</div>
+    </div>
+    <div class="text-end">
+      <div class="fs-3 {% if m.importo > 0 %}entrata{% else %}uscita{% endif %}">€ {{ m.importo|floatformat:"2g" }}</div>
+      <div class="small">Residuo da abbinare: <strong>€ {{ residuo|floatformat:"2g" }}</strong></div>
+    </div>
+  </div>
+</div></div>
+
+<h2 class="h5">Abbinamenti</h2>
+<table class="table table-sm bg-white">
+  <thead><tr><th>Stato</th><th>Documento</th><th class="num">Quota movimento</th><th class="num">Quota documento</th><th>Motivo</th><th></th></tr></thead>
+  <tbody>
+  {% for a in abbinamenti %}
+    <tr>
+      <td>{{ a.get_stato_display }}{% if a.stato == 'proposto' %} ({{ a.punteggio }}){% endif %}</td>
+      <td>{% if a.fattura %}Fattura {{ a.fattura.get_direzione_display|lower }} n. {{ a.fattura.numero }} del {{ a.fattura.data|date:"d/m/Y" }} – {{ a.fattura.controparte }}
+          {% else %}Corrispettivo {{ a.corrispettivo.data|date:"d/m/Y" }} {{ a.corrispettivo.get_metodo_display }} {{ a.corrispettivo.riferimento }}{% endif %}</td>
+      <td class="num">{{ a.importo|floatformat:"2g" }}</td><td class="num">{{ a.importo_documento|floatformat:"2g" }}</td>
+      <td class="small">{{ a.motivo }}</td>
+      <td class="text-nowrap">{% if membro.puo_modificare %}
+        {% if a.stato == 'proposto' %}
+          <form class="d-inline" method="post" action="{% url 'azione_abbinamento' a.pk 'conferma' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-success btn-sm py-0">Conferma</button></form>
+          <form class="d-inline" method="post" action="{% url 'azione_abbinamento' a.pk 'rifiuta' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-outline-danger btn-sm py-0">Scarta</button></form>
+        {% else %}
+          <form class="d-inline" method="post" action="{% url 'azione_abbinamento' a.pk 'elimina' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-link btn-sm py-0 text-danger">annulla</button></form>
+        {% endif %}{% endif %}</td>
+    </tr>
+  {% empty %}<tr><td colspan="6" class="text-muted">Nessun abbinamento.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+{% if membro.puo_modificare and residuo > 0 %}
+<h2 class="h5 mt-4">Abbina manualmente</h2>
+<form method="get" class="row g-2 mb-2"><div class="col-auto"><input name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Numero, controparte o importo"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-secondary">Cerca</button></div></form>
+<p class="small text-muted">Senza ricerca vengono mostrati i documenti aperti nel periodo del movimento. La quota proposta è il minimo tra residuo del movimento e del documento: modificala se serve.</p>
+
+<table class="table table-sm bg-white">
+  <thead><tr><th>Documento</th><th>Data</th><th>Controparte</th><th class="num">Residuo doc.</th><th style="width:330px">Quota movimento / documento</th></tr></thead>
+  <tbody>
+  {% for f in fatture %}
+    <tr><td>Ft {{ f.get_direzione_display|lower }} {{ f.tipo_documento }} n. {{ f.numero }}</td><td>{{ f.data|date:"d/m/Y" }}</td><td>{{ f.controparte }}</td>
+      <td class="num">{{ f.residuo_calc|floatformat:"2g" }}</td>
+      <td><form method="post" class="d-flex gap-1">{% csrf_token %}<input type="hidden" name="tipo" value="f"><input type="hidden" name="documento_id" value="{{ f.pk }}">
+        <input name="importo" class="form-control form-control-sm" value="{% if f.residuo_calc < residuo %}{{ f.residuo_calc|stringformat:'.2f' }}{% else %}{{ residuo|stringformat:'.2f' }}{% endif %}">
+        <input name="importo_documento" class="form-control form-control-sm" placeholder="= quota">
+        <button class="btn btn-sm btn-primary">Abbina</button></form></td></tr>
+  {% endfor %}
+  {% for c in corrispettivi %}
+    <tr><td>Corrispettivo {{ c.get_metodo_display }} {{ c.riferimento }}</td><td>{{ c.data|date:"d/m/Y" }}</td><td>-</td>
+      <td class="num">{{ c.residuo_calc|floatformat:"2g" }}</td>
+      <td><form method="post" class="d-flex gap-1">{% csrf_token %}<input type="hidden" name="tipo" value="c"><input type="hidden" name="documento_id" value="{{ c.pk }}">
+        <input name="importo" class="form-control form-control-sm" value="{% if c.residuo_calc < residuo %}{{ c.residuo_calc|stringformat:'.2f' }}{% else %}{{ residuo|stringformat:'.2f' }}{% endif %}">
+        <input name="importo_documento" class="form-control form-control-sm" value="{{ c.residuo_calc|stringformat:'.2f' }}" title="lordo coperto (la differenza è la commissione POS)">
+        <button class="btn btn-sm btn-primary">Abbina</button></form></td></tr>
+  {% endfor %}
+  {% if not fatture and not corrispettivi %}<tr><td colspan="5" class="text-muted">Nessun documento aperto trovato.</td></tr>{% endif %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}
