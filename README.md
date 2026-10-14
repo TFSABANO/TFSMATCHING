@@ -24,16 +24,39 @@ Apri http://127.0.0.1:8000 e accedi con `demo` / `demo12345`.
 
 Test: `python manage.py test core`
 
-## Produzione (Docker + PostgreSQL)
+## Messa online su un sottodominio (es. riconcilia.tfsabano.com)
 
-```bash
-cp .env.example .env        # impostare SECRET_KEY, host, password DB, FIELD_ENCRYPTION_KEY
-docker compose up -d --build
-docker compose exec web python manage.py createsuperuser
-```
+Serve un server Linux (Ubuntu 22.04/24.04) con almeno 2 GB di RAM, raggiungibile da internet sulle porte 80 e 443:
+va bene una VPS da 5-10 €/mese (Aruba Cloud, Hetzner, OVH, DigitalOcean…).
 
-Mettere davanti un reverse proxy HTTPS (nginx, Caddy, Traefik). Il servizio `cron` scarica ogni 24 ore le nuove
-fatture da Aruba per tutte le aziende configurate e ricalcola le proposte (`python manage.py sincronizza_aruba`).
+1. **DNS**: nel pannello del dominio `tfsabano.com` crea un record **A** con nome `riconcilia`
+   (o il sottodominio che preferisci) che punta all'indirizzo IP del server.
+2. **Sul server** (via SSH):
+   ```bash
+   git clone https://github.com/TFSABANO/TFSMATCHING.git riconcilia
+   cd riconcilia
+   sudo bash deploy/installa.sh riconcilia.tfsabano.com
+   ```
+   Lo script installa Docker, genera le chiavi segrete in `.env`, avvia tutto e chiede di creare l'utente amministratore.
+   Il certificato HTTPS viene ottenuto automaticamente (Let's Encrypt) appena il DNS punta al server.
+3. Apri `https://riconcilia.tfsabano.com/admin/`, crea l'azienda (con la P.IVA corretta) e gli utenti,
+   poi lavora da `https://riconcilia.tfsabano.com/`.
+
+Servizi avviati (`docker compose ps`):
+
+| Servizio | Cosa fa |
+|---|---|
+| `caddy` | HTTPS e certificato automatico sul sottodominio |
+| `web` | l'applicazione |
+| `db` | PostgreSQL |
+| `cron` | ogni notte scarica le nuove fatture da Aruba e ricalcola gli abbinamenti |
+| `backup` | dump giornaliero del database in `./backup`, conservati 30 giorni |
+
+- **Aggiornare** all'ultima versione su GitHub: `sudo bash deploy/aggiorna.sh`
+- **Conservare una copia di `.env`** in un posto sicuro: contiene la chiave che cifra le password Aruba.
+- Copiare periodicamente la cartella `backup/` fuori dal server.
+- Ripristino di un backup:
+  `docker compose exec -T db pg_restore -U riconcilia -d riconcilia --clean < backup/riconcilia_AAAAMMGG.dump`
 
 ## Configurazione iniziale
 

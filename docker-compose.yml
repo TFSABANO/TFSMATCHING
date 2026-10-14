@@ -5,19 +5,56 @@ services:
     env_file: .env
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 20
+
   web:
     build: .
     restart: unless-stopped
     env_file: .env
-    depends_on: [db]
-    ports:
-      - "8000:8000"
+    depends_on:
+      db: {condition: service_healthy}
+    expose: ["8000"]
+
+  # HTTPS automatico (certificato Let's Encrypt) sul sottodominio indicato in DOMINIO
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    env_file: .env
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [web]
+
   # sincronizzazione notturna fatture Aruba + ricalcolo abbinamenti
   cron:
     build: .
     restart: unless-stopped
     env_file: .env
-    depends_on: [db]
-    command: sh -c 'while true; do python manage.py sincronizza_aruba; sleep 86400; done'
+    depends_on:
+      db: {condition: service_healthy}
+    command: sh -c 'while true; do sleep 3600; python manage.py sincronizza_aruba; sleep 82800; done'
+
+  # backup giornaliero del database in ./backup (conservati 30 giorni)
+  backup:
+    image: postgres:16
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db: {condition: service_healthy}
+    volumes:
+      - ./backup:/backup
+    entrypoint: >
+      sh -c 'while true; do
+        PGPASSWORD="$$POSTGRES_PASSWORD" pg_dump -h db -U "$$POSTGRES_USER" -Fc "$$POSTGRES_DB" > /backup/riconcilia_$$(date +%Y%m%d).dump;
+        find /backup -name "*.dump" -mtime +30 -delete;
+        sleep 86400; done'
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
